@@ -1,19 +1,49 @@
-name: Base Pipeline
+name: Base CI/CD Pipeline
 
 on:
     push:
         branches: ["main"]
 
 jobs:
-    Code-lint:
+    Code-lint-and-Test:
+        name: code lint and unit test
         runs-on: ubuntu-latest
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+            
+            - name: Thiết lập môi trường Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '18'
+                cache: 'npm'
 
             - name: cài đặt các thư viện
               run: npm install
             
             - name: kiểm tra cú pháp
               run: npm run lint
+
+            - name: Chạy Unit test
+              run: npm test
+    
+    Build-docker:
+      name: Build Docker Image
+      runs-on: ubuntu-latest
+      needs: Code-lint-and-Test
+
+      steps:
+        - name: checkout mã nguồn
+          uses: action/checkout@v4
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v3
+
+        - name: Build Docker Image
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            file: ./Dockerfile
+            push: false
+            tags: todo-nodejs-api:latest
