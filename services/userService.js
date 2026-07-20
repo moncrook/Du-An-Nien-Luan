@@ -9,14 +9,14 @@ const { querySql, queryOne } = require('../utils/index');
 const md5 = require('../utils/md5');
 const jwt = require('jsonwebtoken');
 const boom = require('boom');
-const { body, validationResult } = require('express-validator');
+const {validationResult } = require('express-validator');
 const { 
   CODE_ERROR,
   CODE_SUCCESS, 
   PRIVATE_KEY, 
   JWT_EXPIRED 
 } = require('../utils/constant');
-const { decode } = require('../utils/user-jwt');
+
 
 // Đăng nhập
 function login(req, res, next) {

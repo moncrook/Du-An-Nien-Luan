@@ -5,29 +5,23 @@
 */
 
 const { querySql, queryOne } = require('../utils/index');
-const jwt = require('jsonwebtoken');
 const boom = require('boom');
 const { validationResult } = require('express-validator');
 const { 
   CODE_ERROR,
-  CODE_SUCCESS, 
-  PRIVATE_KEY, 
-  JWT_EXPIRED 
-} = require('../utils/constant');
-const { decode } = require('../utils/user-jwt');
+  CODE_SUCCESS 
+} = require('../utils/constant'); // Đã xóa PRIVATE_KEY và JWT_EXPIRED
+
+// Đã xóa jwt và decode không sử dụng
 
 // Truy vấn danh sách nhiệm vụ (Tasks)
 function queryTaskList(req, res, next) {
   const err = validationResult(req);
-  // Nếu có lỗi validate, err.isEmpty() sẽ trả về false
   if (!err.isEmpty()) {
-    // Lấy thông báo lỗi
     const [{ msg }] = err.errors;
-    // Chuyển lỗi sang middleware xử lý ngoại lệ tập trung
     next(boom.badRequest(msg));
   } else {
     let { pageSize, pageNo, status } = req.query;
-    // Giá trị mặc định
     pageSize = pageSize ? pageSize : 1;
     pageNo = pageNo ? pageNo : 1;
     status = (status || status == 0) ? status : null;
@@ -35,7 +29,6 @@ function queryTaskList(req, res, next) {
     let query = `select d.id, d.title, d.content, d.status, d.is_major, d.gmt_create, d.gmt_expire from sys_task d`;
     querySql(query)
     .then(data => {
-      // console.log('Truy vấn danh sách nhiệm vụ===', data);
       if (!data || data.length === 0) {
         res.json({ 
           code: CODE_ERROR, 
@@ -43,12 +36,9 @@ function queryTaskList(req, res, next) {
           data: null 
         })
       } else {
-
-        // Tính tổng số lượng bản ghi
         let total = data.length; 
-        // Điều kiện phân trang (bỏ qua bao nhiêu bản ghi)
         let n = (pageNo - 1) * pageSize;
-        // Ghép câu lệnh SQL phân trang
+
         if (status) {
           let query_1 = `select d.id, d.title, d.content, d.status, d.is_major, d.gmt_create, d.gmt_expire from sys_task d where status='${status}' order by d.gmt_create desc`;
           querySql(query_1)
@@ -136,7 +126,6 @@ function addTask(req, res, next) {
         const query = `insert into sys_task(title, content, status, is_major, gmt_expire) values('${title}', '${content}', 0, 0, '${gmt_expire}')`;
         querySql(query)
         .then(data => {
-          // console.log('Thêm nhiệm vụ===', data);
           if (!data || data.length === 0) {
             res.json({ 
               code: CODE_ERROR, 
@@ -180,7 +169,6 @@ function editTask(req, res, next) {
             const query = `update sys_task set title='${title}', content='${content}', gmt_expire='${gmt_expire}' where id='${id}'`;
             querySql(query)
             .then(data => {
-              // console.log('Chỉnh sửa nhiệm vụ===', data);
               if (!data || data.length === 0) {
                 res.json({ 
                   code: CODE_ERROR, 
@@ -223,7 +211,6 @@ function updateTaskStatus(req, res, next) {
         const query = `update sys_task set status='${status}' where id='${id}'`;
         querySql(query)
         .then(data => {
-          // console.log('Cập nhật trạng thái nhiệm vụ===', data);
           if (!data || data.length === 0) {
             res.json({ 
               code: CODE_ERROR, 
@@ -264,7 +251,6 @@ function updateMark(req, res, next) {
         const query = `update sys_task set is_major='${is_major}' where id='${id}'`;
         querySql(query)
         .then(data => {
-          // console.log('Đánh dấu sao quan trọng===', data);
           if (!data || data.length === 0) {
             res.json({ 
               code: CODE_ERROR, 
@@ -303,10 +289,8 @@ function deleteTask(req, res, next) {
     .then(task => {
       if (task) {
         const query = `update sys_task set status='${status}' where id='${id}'`;
-        // const query = `delete from sys_task where id='${id}'`;
         querySql(query)
         .then(data => {
-          // console.log('Xóa nhiệm vụ===', data);
           if (!data || data.length === 0) {
             res.json({ 
               code: CODE_ERROR, 
@@ -335,8 +319,8 @@ function deleteTask(req, res, next) {
 
 // Kiểm tra dữ liệu có tồn tại hay không thông qua tên nhiệm vụ hoặc ID
 function findTask(param, type) {
-  let query = null;
-  if (type == 1) { // 1: Trường hợp Thêm mới 2: Trường hợp Chỉnh sửa hoặc Xóa
+  let query; // Đã bỏ khởi tạo '= null' để hết lỗi no-useless-assignment
+  if (type == 1) { // 1: Trường hợp Thêm mới, 2: Trường hợp Chỉnh sửa/Xóa
     query = `select id, title from sys_task where title='${param}'`;
   } else {
     query = `select id, title from sys_task where id='${param}'`;
