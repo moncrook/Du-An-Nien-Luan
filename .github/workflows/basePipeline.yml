@@ -1,0 +1,12 @@
+name: Base Pipeline
+
+on:
+    push:
+        branches: ["main"]
+
+jobs:
+    Code-lint:
+        runs-on: ubuntu-latest
+
+        steps:
+            - 
