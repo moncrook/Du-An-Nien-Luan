@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Công việc</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen font-sans">
+
+    <div id="auth-section" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+            <h2 id="auth-title" class="text-2xl font-bold text-center text-slate-800 mb-6">Đăng Nhập Hệ Thống</h2>
+            
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Tài khoản</label>
+                    <input type="text" id="username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Mật khẩu</label>
+                    <input type="password" id="password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition duration-200">
+                    Đăng Nhập
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-indigo-600 hover:underline">
+                    Chưa có tài khoản? Đăng ký ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-section" class="hidden">
+        <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-list-check text-indigo-600 mr-2"></i>Task Manager</h1>
+            <div class="flex items-center gap-4">
+                <span id="user-display" class="text-sm font-medium text-slate-700">Chào, Người dùng</span>
+                <button onclick="logout()" class="text-sm bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg font-medium transition">
+                    Đăng xuất
+                </button>
+            </div>
+        </nav>
+
+        <div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Thêm Công Việc Mới</h3>
+                <form onsubmit="handleAddTask(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Tiêu đề</label>
+                        <input type="text" id="task-title" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Nội dung chi tiết</label>
+                        <textarea id="task-content" rows="3" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Ngày hết hạn</label>
+                        <input type="datetime-local" id="task-expire" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Tạo Task
+                    </button>
+                </form>
+            </div>
+
+            <div class="md:col-span-2 space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Danh Sách Nhiệm Vụ</h3>
+                    <select id="filter-status" onchange="loadTasks()" class="text-sm bg-slate-50 border border-slate-300 rounded-lg p-1.5 focus:outline-none">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="0">Chưa hoàn thành</option>
+                        <option value="1">Đã hoàn thành</option>
+                    </select>
+                </div>
+
+                <div id="task-container" class="space-y-3">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8088/api';
+        let isLoginMode = true;
+        let token = localStorage.getItem('token') || '';
+
+        // Tự động kiểm tra trạng thái đăng nhập khi mở trang
+        window.onload = function() {
+            if (token) {
+                showDashboard();
+            }
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? 'Đăng Nhập Hệ Thống' : 'Đăng Ký Tài Khoản';
+            document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'Đăng Nhập' : 'Đăng Ký';
+            document.getElementById('auth-toggle-btn').innerText = isLoginMode ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập';
+        }
+
+        // Xử lý Đăng nhập / Đăng ký
+        async function handleAuth(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isLoginMode ? '/login' : '/register';
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const resData = await response.json();
+
+                if (resData.code === 0) {
+                    alert(resData.msg);
+                    token = resData.data.token;
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('username', resData.data.userData.username);
+                    showDashboard();
+                } else {
+                    alert('Thất bại: ' + resData.msg);
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến Server Backend!');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-section').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `Chào, ${localStorage.getItem('username')}`;
+            loadTasks();
+        }
+
+        function logout() {
+            localStorage.clear();
+            token = '';
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('main-section').classList.add('hidden');
+        }
+
+        // Lấy danh sách Task từ Backend
+        async function loadTasks() {
+            const statusFilter = document.getElementById('filter-status').value;
+            let url = `${API_URL}/queryTaskList?pageSize=20&pageNo=1`;
+            if (statusFilter !== "") url += `&status=${statusFilter}`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Authorization': token }
+                });
+                const resData = await response.json();
+                const container = document.getElementById('task-container');
+                container.innerHTML = '';
+
+                if (resData.code === 0 && resData.data && resData.data.rows) {
+                    resData.data.rows.forEach(task => {
+                        const isDone = task.status === 1;
+                        const isMajor = task.is_major === 1;
+                        
+                        const taskHTML = `
+                            <div class="bg-white p-4 rounded-xl shadow-xs border border-slate-200 flex justify-between items-center transition hover:shadow-md ${isDone ? 'opacity-60 bg-slate-50' : ''}">
+                                <div class="flex items-center gap-3">
+                                    <button onclick="toggleStatus(${task.id}, ${task.status})" class="text-xl ${isDone ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'}">
+                                        <i class="${isDone ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i>
+                                    </button>
+                                    <div>
+                                        <h4 class="font-semibold text-slate-800 ${isDone ? 'line-through' : ''}">${task.title}</h4>
+                                        <p class="text-xs text-slate-500 mt-0.5">${task.content}</p>
+                                        <span class="inline-block text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded mt-2">
+                                            <i class="fa-regular fa-clock mr-1"></i>Hết hạn: ${new Date(task.gmt_expire).toLocaleString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="toggleMark(${task.id}, ${task.is_major})" class="text-lg ${isMajor ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}">
+                                        <i class="fa-solid fa-star"></i>
+                                    </button>
+                                    <button onclick="deleteTask(${task.id})" class="text-slate-300 hover:text-rose-500 transition">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', taskHTML);
+                    });
+                } else {
+                    container.innerHTML = `<p class="text-center text-sm text-slate-400 py-6">Không có dữ liệu công việc nào.</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Tạo mới Task
+        async function handleAddTask(e) {
+            e.preventDefault();
+            const title = document.getElementById('task-title').value;
+            const content = document.getElementById('task-content').value;
+            const gmt_expire = document.getElementById('task-expire').value;
+
+            const response = await fetch(`${API_URL}/addTask`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                body: JSON.stringify({ title, content, gmt_expire })
+            });
+            const resData = await response.json();
+            alert(resData.msg);
+            if (resData.code === 0) {
+                e.target.reset();
+                loadTasks();
+            }
+        }
+
+        // Thay đổi trạng thái Task (0 <-> 1)
+        async function toggleStatus(id, currentStatus) {
+            const nextStatus = currentStatus === 0 ? 1 : 0;
+            await fetch(`${API_URL}/updateTaskStatus`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                body: JSON.stringify({ id, status: nextStatus })
+            });
+            loadTasks();
+        }
+
+        // Bật/Tắt dấu sao quan trọng (0 <-> 1)
+        async function toggleMark(id, currentMark) {
+            const nextMark = currentMark === 0 ? 1 : 0;
+            await fetch(`${API_URL}/updateMark`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                body: JSON.stringify({ id, is_major: nextMark })
+            });
+            loadTasks();
+        }
+
+        // Xóa công việc (Backend của bạn định nghĩa xóa bằng cách đưa status về trạng thái xóa)
+        async function deleteTask(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa task này?')) return;
+            await fetch(`${API_URL}/deleteTask`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                body: JSON.stringify({ id, status: -1 }) // Truyền mã trạng thái xóa theo thiết kế của backend bạn
+            });
+            loadTasks();
+        }
+    </script>
+</body>
+</html>
