@@ -31,7 +31,7 @@ jobs:
               run: npm test
     
     security-and-build:
-      name: Build Docker Image
+      name: Build Docker Image & security Trivy
       runs-on: ubuntu-latest
       needs: Code-Lint-and-Test
 
