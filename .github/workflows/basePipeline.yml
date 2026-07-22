@@ -3,9 +3,11 @@ name: Base CI/CD Pipeline
 on:
     push:
         branches: ["main"]
+    pull_request:
+        branches: ["main"]
 
 jobs:
-    Code-lint-and-Test:
+    Code-Lint-and-Test:
         name: code lint and unit test
         runs-on: ubuntu-latest
 
@@ -28,10 +30,10 @@ jobs:
             - name: Chạy Unit test
               run: npm test
     
-    Build-docker:
+    security-and-build:
       name: Build Docker Image
       runs-on: ubuntu-latest
-      needs: Code-lint-and-Test
+      needs: Code-Lint-and-Test
 
       steps:
         - name: checkout mã nguồn
@@ -45,5 +47,49 @@ jobs:
           with:
             context: .
             file: ./Dockerfile
-            push: false
+            push: true
             tags: todo-nodejs-api:latest
+        
+        - name: quét lỗ hổng bảo mật bằng Trivy
+          uses: aquasecurity/trivy-action@0.16.0
+          with:
+            image-ref: 'todo-nodejs-api:latest'
+            format: 'table'
+            exit-code: '1'
+            ignore-unfixed: true
+            severity: 'CRITICAL,HIGH'
+
+
+    push-to-registry:
+      name: Push Image to GHCR
+      runs-on: ubuntu-latest
+      needs: security-and-build # Chỉ chạy khi build và quét bảo mật thành công 100%
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Log in to GitHub Container Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GHCR_TOKEN }} # Lấy token bảo mật từ Secrets đã cấu hình
+
+        - name: Extract metadata (tags, labels) for Docker
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            images: ghcr.io/${{ github.repository }}
+            tags: |
+              type=raw,value=latest
+              type=sha,format=long
+
+        - name: Build and push Docker image
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            file: ./Dockerfile
+            push: true # Đẩy image lên kho lưu trữ công khai/bảo mật trên GHCR
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
