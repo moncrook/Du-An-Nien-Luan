@@ -50,6 +50,14 @@ jobs:
             load: true
             no-cache: true
             tags: todo-nodejs-api:latest
+
+        - name: Verify installed dependencies in image
+          run: |
+            docker run --rm todo-nodejs-api:latest npm ls tar
+            docker run --rm todo-nodejs-api:latest npm ls brace-expansion
+            docker run --rm todo-nodejs-api:latest npm ls glob
+            docker run --rm todo-nodejs-api:latest npm ls minimatch
+
         
         - name: quét lỗ hổng bảo mật bằng Trivy
           uses: aquasecurity/trivy-action@v0.16.0
@@ -86,13 +94,7 @@ jobs:
               type=raw,value=latest
               type=sha,format=long
 
-        - name: Verify installed dependencies in image
-          run: |
-            docker run --rm todo-nodejs-api:latest npm ls tar
-            docker run --rm todo-nodejs-api:latest npm ls brace-expansion
-            docker run --rm todo-nodejs-api:latest npm ls glob
-            docker run --rm todo-nodejs-api:latest npm ls minimatch
-
+        
         - name: Build and push Docker image
           uses: docker/build-push-action@v5
           with:
