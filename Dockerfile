@@ -1,6 +1,8 @@
 # 1. Dùng base image Node.js lightweight
 FROM node:18-alpine
 
+RUN apk update && apk upgrade --no-cache
+
 # 2. Tạo thư mục làm việc trong container
 WORKDIR /app
 
