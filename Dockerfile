@@ -1,22 +1,17 @@
-# 1. Dùng base image Node.js lightweight
 FROM node:18-alpine
 
+# Cập nhật OS Alpine
 RUN apk update && apk upgrade --no-cache
 
-# 2. Tạo thư mục làm việc trong container
 WORKDIR /app
 
-# 3. Copy file package.json và package-lock.json
+# Copy hai file package
 COPY package*.json ./
 
-# 4. Cài đặt thư viện cho môi trường Production
-RUN npm ci --only=production
+# Dùng 'npm ci --omit=dev' để chỉ cài đặt các thư viện Production
+RUN npm ci --omit=dev
 
-# 5. Copy toàn bộ mã nguồn vào container
 COPY . .
 
-# 6. Khai báo port ứng dụng chạy
 EXPOSE 3000
-
-# 7. Lệnh khởi chạy ứng dụng
-CMD ["node", "app.js"]
+CMD ["npm", "start"]
