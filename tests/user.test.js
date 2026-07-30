@@ -1,4 +1,3 @@
-
 const request = require('supertest');
 const app = require('../app');
 const db = require('../utils/index');
@@ -34,7 +33,7 @@ describe('Test các API xác thực Người dùng (User APIs)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.code).toBe(0); // CODE_SUCCESS
-    expect(res.body.msg).toBe('Đăng ký thành công'); // Đã cập nhật khớp với thông báo tiếng Việt của backend
+    expect(res.body.msg).toBe('Đăng ký thành công'); 
     expect(res.body.data).toHaveProperty('token');
   });
 
@@ -52,7 +51,7 @@ describe('Test các API xác thực Người dùng (User APIs)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.code).toBe(-1); // CODE_ERROR
-    expect(res.body.msg).toBe('Tên người dùng đã tồn tại'); // Đã cập nhật khớp với backend
+    expect(res.body.msg).toBe('Tên người dùng đã tồn tại'); 
   });
 
   // 3. Test trường hợp Đăng nhập thành công
@@ -70,12 +69,6 @@ describe('Test các API xác thực Người dùng (User APIs)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.code).toBe(0);
     expect(res.body.data).toHaveProperty('token');
-
-      afterAll(async () => {
-      // Đóng kết nối DB Pool (nếu utils/index export db pool hoặc connection)
-      if (db && db.end) {
-        await db.end();
-      }
-    });
   });
+
 });

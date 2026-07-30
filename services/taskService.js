@@ -5,7 +5,7 @@
 */
 
 const { querySql, queryOne } = require('../utils/index');
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const { validationResult } = require('express-validator');
 const { 
   CODE_ERROR,

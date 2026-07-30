@@ -8,7 +8,7 @@
 const { querySql, queryOne } = require('../utils/index');
 const md5 = require('../utils/md5');
 const jwt = require('jsonwebtoken');
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const {validationResult } = require('express-validator');
 const { 
   CODE_ERROR,

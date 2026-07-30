@@ -1,40 +1,44 @@
 {
   "name": "todo-nodejs-api",
   "version": "1.0.0",
-  "description": "NodeJS全栈开发之RESTFUL API基于Node.js+Express+Mysql实现后端接口",
-  "author": "",
+  "description": "NodeJS RESTful API",
   "main": "index.js",
   "dependencies": {
+    "@hapi/boom": "^10.0.1",
     "body-parser": "^1.20.3",
-    "boom": "^7.3.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-jwt": "^8.5.1",
     "express-validator": "^6.5.0",
-    "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.22.6"
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.12.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.7.0",
     "globals": "^17.7.0",
-    "jest": "^25.0.0",
-    "nodemon": "^3.1.14",
-    "supertest": "^6.3.4"
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.0.0"
   },
   "scripts": {
     "start": "nodemon app.js",
-    "test": "jest --testEnvironment=node --runInBand --detectOpenHandles",
+    "test": "jest --testEnvironment=node --runInBand --detectOpenHandles --forceExit",
     "lint": "eslint ."
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "minimatch": "^3.1.2",
+    "glob": "^7.2.3"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jackchen0120/todo-nodejs-api.git"
+    "url": "git+https://github.com/moncrook/Du-An-Nien-Luan.git"
   },
   "keywords": [],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/jackchen0120/todo-nodejs-api/issues"
+    "url": "https://github.com/moncrook/Du-An-Nien-Luan/issues"
   },
-  "homepage": "https://github.com/jackchen0120/todo-nodejs-api#readme"
+  "homepage": "https://github.com/moncrook/Du-An-Nien-Luan#readme"
 }
