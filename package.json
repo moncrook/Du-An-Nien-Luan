@@ -24,7 +24,7 @@
   },
   "scripts": {
     "start": "nodemon app.js",
-    "test": "jest --runInBand --detectOpenHandles",
+    "test": "jest --testEnvironment=node --runInBand --detectOpenHandles",
     "lint": "eslint ."
   },
   "repository": {

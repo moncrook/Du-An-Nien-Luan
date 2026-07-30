@@ -70,5 +70,12 @@ describe('Test các API xác thực Người dùng (User APIs)', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.code).toBe(0);
     expect(res.body.data).toHaveProperty('token');
+
+      afterAll(async () => {
+      // Đóng kết nối DB Pool (nếu utils/index export db pool hoặc connection)
+      if (db && db.end) {
+        await db.end();
+      }
+    });
   });
 });
