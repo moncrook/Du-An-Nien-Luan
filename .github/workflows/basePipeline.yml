@@ -51,15 +51,14 @@ jobs:
             no-cache: true
             tags: todo-nodejs-api:latest
 
-        - name: Verify installed dependencies in image
-          run: |
-            docker run --rm todo-nodejs-api:latest npm ls tar || true
-            docker run --rm todo-nodejs-api:latest npm ls brace-expansion || true
-            docker run --rm todo-nodejs-api:latest npm ls glob || true
-            docker run --rm todo-nodejs-api:latest npm ls minimatch || true
+        - name: Show Docker images
+          run: docker images
+
+        - name: Inspect image
+          run: docker image inspect todo-nodejs-api:latest
         
         - name: quét lỗ hổng bảo mật bằng Trivy
-          uses: aquasecurity/trivy-action@v0.16.0
+          uses: aquasecurity/trivy-action@v0.33.1
           with:
             image-ref: 'todo-nodejs-api:latest'
             format: 'table'
