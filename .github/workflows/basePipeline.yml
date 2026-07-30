@@ -48,6 +48,7 @@ jobs:
             context: .
             file: ./Dockerfile
             load: true
+            no-cache: true
             tags: todo-nodejs-api:latest
         
         - name: quét lỗ hổng bảo mật bằng Trivy
