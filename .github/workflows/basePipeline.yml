@@ -109,6 +109,6 @@ jobs:
             file: ./Dockerfile
             push: true
             tags: |
-              ghcr.io/${{ github.repository }}:v2  # <-- Thay vì 'latest', bạn dùng 'v2'
-              ghcr.io/${{ github.repository }}:latest # <-- Có thể giữ lại hoặc bỏ tùy bạn
+              ghcr.io/${{ github.repository }}:v2  
+              ghcr.io/${{ github.repository }}:latest # 
             labels: ${{ steps.meta.outputs.labels }}
