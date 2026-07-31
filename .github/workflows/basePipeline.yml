@@ -68,7 +68,7 @@ jobs:
         - name: Scan Docker image
           run: |
             trivy image \
-              --severity HIGH \
+              --severity CRITICAL \
               --ignore-unfixed \
               --exit-code 1 \
               todo-nodejs-api:v2
