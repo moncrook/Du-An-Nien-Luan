@@ -67,11 +67,13 @@ jobs:
 
         - name: Scan Docker image
           run: |
+            trivy image --download-db-only
+            
             trivy image \
-              --severity CRITICAL \
-              --ignore-unfixed \
-              --exit-code 1 \
-              todo-nodejs-api:v2
+                --severity CRITICAL \
+                --ignore-unfixed \
+                --exit-code 1 \
+                todo-nodejs-api:v2
 
 
     push-to-registry:
