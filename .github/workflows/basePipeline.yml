@@ -96,10 +96,10 @@ jobs:
           id: meta
           uses: docker/metadata-action@v5
           with:
-            images: ghcr.io/${{ github.repository }}
+            images: ghcr.io/moncrook/du-an-nien-luan
             tags: |
+              type=raw,value=v2
               type=raw,value=latest
-              type=sha,format=long
 
         
         - name: Build and push Docker image
@@ -108,7 +108,8 @@ jobs:
             context: .
             file: ./Dockerfile
             push: true
-            tags: |
-              ghcr.io/${{ github.repository }}:v2  
-              ghcr.io/${{ github.repository }}:latest # 
+            # tags: |
+            #   ghcr.io/${{ github.repository }}:v2  
+            #   ghcr.io/${{ github.repository }}:latest # 
+            tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
