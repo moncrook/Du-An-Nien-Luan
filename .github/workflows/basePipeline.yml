@@ -71,7 +71,7 @@ jobs:
               --severity HIGH,CRITICAL \
               --ignore-unfixed \
               --exit-code 1 \
-              todo-nodejs-api:latest
+              todo-nodejs-api:v2
 
 
     push-to-registry:
