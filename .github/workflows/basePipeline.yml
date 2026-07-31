@@ -49,7 +49,7 @@ jobs:
             file: ./Dockerfile
             load: true
             no-cache: true
-            tags: todo-nodejs-api:latest
+            tags: todo-nodejs-api:v2
 
         - name: Show Docker images
           run: docker images
@@ -61,7 +61,7 @@ jobs:
           run: |
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
               | sudo sh -s -- -b /usr/local/bin v0.72.0
-              
+
         - name: Check Trivy version
           run: trivy --version
 
