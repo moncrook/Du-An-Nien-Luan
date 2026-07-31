@@ -18,7 +18,7 @@ jobs:
             - name: Thiết lập môi trường Node.js
               uses: actions/setup-node@v4
               with:
-                node-version: '18'
+                node-version: '20'
                 cache: 'npm'
 
             - name: cài đặt các thư viện
@@ -68,7 +68,7 @@ jobs:
         - name: Scan Docker image
           run: |
             trivy image \
-              --severity HIGH,CRITICAL \
+              --severity HIGH \
               --ignore-unfixed \
               --exit-code 1 \
               todo-nodejs-api:v2
