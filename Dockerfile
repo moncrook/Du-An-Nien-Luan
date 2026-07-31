@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Dùng 'npm ci --omit=dev' để chỉ cài đặt các thư viện Production
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --no-cache
 
 COPY . .
 
