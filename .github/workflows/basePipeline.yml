@@ -57,14 +57,24 @@ jobs:
         - name: Inspect image
           run: docker image inspect todo-nodejs-api:latest
         
-        - name: quét lỗ hổng bảo mật bằng Trivy
-          uses: aquasecurity/trivy-action@v0.33.1
-          with:
-            image-ref: 'todo-nodejs-api:latest'
-            format: 'table'
-            exit-code: '1'
-            ignore-unfixed: true
-            severity: 'CRITICAL,HIGH'
+        - name: Install Trivy
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y wget
+            wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.65.0_Linux-64bit.tar.gz
+            tar -xzf trivy_0.65.0_Linux-64bit.tar.gz
+            sudo mv trivy /usr/local/bin/
+
+        - name: Check Trivy version
+          run: trivy --version
+
+        - name: Scan Docker image
+          run: |
+            trivy image \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              todo-nodejs-api:latest
 
 
     push-to-registry:
