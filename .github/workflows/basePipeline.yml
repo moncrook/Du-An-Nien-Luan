@@ -36,7 +36,7 @@ jobs:
       needs: Code-Lint-and-Test
 
       steps:
-        - name: checkout mã nguồn
+        - name: Checkout mã nguồn
           uses: actions/checkout@v4
 
         - name: Set up Docker Buildx
@@ -56,7 +56,15 @@ jobs:
 
         - name: Inspect image
           run: docker image inspect todo-nodejs-api:v2
-        
+
+        - name: Verify dependencies inside Docker image
+          run: |
+            docker run --rm todo-nodejs-api:v2 npm ls tar
+            docker run --rm todo-nodejs-api:v2 npm ls brace-expansion
+            docker run --rm todo-nodejs-api:v2 npm ls cross-spawn
+            docker run --rm todo-nodejs-api:v2 npm ls glob
+            docker run --rm todo-nodejs-api:v2 npm ls minimatch
+
         - name: Install Trivy
           run: |
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
@@ -65,15 +73,17 @@ jobs:
         - name: Check Trivy version
           run: trivy --version
 
+        - name: Download Trivy database
+          run: trivy image --download-db-only
+
         - name: Scan Docker image
           run: |
-            trivy image --download-db-only
-            
             trivy image \
-                --severity CRITICAL \
-                --ignore-unfixed \
-                --exit-code 1 \
-                todo-nodejs-api:v2
+              --format table \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              todo-nodejs-api:v2
 
 
     push-to-registry:
