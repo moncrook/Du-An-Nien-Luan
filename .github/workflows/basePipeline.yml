@@ -1,125 +1,165 @@
 name: Base CI/CD Pipeline
 
 on:
-    push:
-        branches: ["main"]
-    pull_request:
-        branches: ["main"]
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: todo-nodejs-api
+  IMAGE_TAG: v2
+  REGISTRY: ghcr.io
+  GHCR_IMAGE: ghcr.io/moncrook/du-an-nien-luan
 
 jobs:
-    Code-Lint-and-Test:
-        name: code lint and unit test
-        runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-            
-            - name: Thiết lập môi trường Node.js
-              uses: actions/setup-node@v4
-              with:
-                node-version: '20'
-                cache: 'npm'
+  # ============================================================
+  # 1. LINT + UNIT TEST
+  # ============================================================
+  Code-Lint-and-Test:
+    name: Code Lint and Unit Test
+    runs-on: ubuntu-latest
 
-            - name: cài đặt các thư viện
-              run: npm install
-            
-            - name: kiểm tra cú pháp
-              run: npm run lint
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
 
-            - name: Chạy Unit test
-              run: npm test
-    
-    security-and-build:
-      name: Build Docker Image & security Trivy
-      runs-on: ubuntu-latest
-      needs: Code-Lint-and-Test
+      - name: Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
 
-      steps:
-        - name: Checkout mã nguồn
-          uses: actions/checkout@v4
+      - name: Cài đặt dependencies
+        run: npm ci
 
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
+      - name: Kiểm tra npm audit
+        run: npm audit --audit-level=high
 
-        - name: Build Docker Image
-          uses: docker/build-push-action@v5
-          with:
-            context: .
-            file: ./Dockerfile
-            load: true
-            no-cache: true
-            tags: todo-nodejs-api:v2
+      - name: Kiểm tra cú pháp
+        run: npm run lint
 
-        - name: Show Docker images
-          run: docker images
-
-        - name: Inspect image
-          run: docker image inspect todo-nodejs-api:v2
-
-        - name: Verify dependencies inside Docker image
-          run: |
-            docker run --rm todo-nodejs-api:v2 npm ls tar
-            docker run --rm todo-nodejs-api:v2 npm ls brace-expansion
-            docker run --rm todo-nodejs-api:v2 npm ls cross-spawn
-            docker run --rm todo-nodejs-api:v2 npm ls glob
-            docker run --rm todo-nodejs-api:v2 npm ls minimatch
-
-        - name: Install Trivy
-          run: |
-            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-              | sudo sh -s -- -b /usr/local/bin v0.72.0
-
-        - name: Check Trivy version
-          run: trivy --version
-
-        - name: Download Trivy database
-          run: trivy image --download-db-only
-
-        - name: Scan Docker image
-          run: |
-            trivy image \
-              --format table \
-              --severity HIGH,CRITICAL \
-              --ignore-unfixed \
-              --exit-code 1 \
-              todo-nodejs-api:v2
+      - name: Chạy Unit Test
+        run: npm test
 
 
-    push-to-registry:
-      name: Push Image to GHCR
-      runs-on: ubuntu-latest
-      needs: security-and-build # Chỉ chạy khi build và quét bảo mật thành công 100%
+  # ============================================================
+  # 2. BUILD DOCKER + SECURITY SCAN
+  # ============================================================
+  security-and-build:
+    name: Build Docker Image and Security Scan
+    runs-on: ubuntu-latest
+    needs: Code-Lint-and-Test
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
 
-        - name: Log in to GitHub Container Registry
-          uses: docker/login-action@v3
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GHCR_TOKEN }} # Lấy token bảo mật từ Secrets đã cấu hình
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-        - name: Extract metadata (tags, labels) for Docker
-          id: meta
-          uses: docker/metadata-action@v5
-          with:
-            images: ghcr.io/moncrook/du-an-nien-luan
-            tags: |
-              type=raw,value=v2
-              type=raw,value=latest
+      # --------------------------------------------------------
+      # Build image
+      # --------------------------------------------------------
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          no-cache: true
+          tags: todo-nodejs-api:v2
 
-        
-        - name: Build and push Docker image
-          uses: docker/build-push-action@v5
-          with:
-            context: .
-            file: ./Dockerfile
-            push: true
-            # tags: |
-            #   ghcr.io/${{ github.repository }}:v2  
-            #   ghcr.io/${{ github.repository }}:latest # 
-            tags: ${{ steps.meta.outputs.tags }}
-            labels: ${{ steps.meta.outputs.labels }}
+      # --------------------------------------------------------
+      # Kiểm tra image có tồn tại
+      # --------------------------------------------------------
+      - name: Show Docker Images
+        run: docker images
+
+      - name: Inspect Docker Image
+        run: docker image inspect todo-nodejs-api:v2
+
+      # --------------------------------------------------------
+      # Kiểm tra dependencies thực tế trong production image
+      # --------------------------------------------------------
+      - name: Verify production dependencies
+        run: |
+          docker run --rm todo-nodejs-api:v2 npm ls tar
+          docker run --rm todo-nodejs-api:v2 npm ls brace-expansion
+
+      # --------------------------------------------------------
+      # Kiểm tra Node và npm trong image
+      # --------------------------------------------------------
+      - name: Check Node and npm version
+        run: |
+          docker run --rm todo-nodejs-api:v2 node --version
+          docker run --rm todo-nodejs-api:v2 npm --version
+
+      # --------------------------------------------------------
+      # Trivy scan
+      #
+      # Dùng Trivy container chính thức thay vì install.sh
+      # --------------------------------------------------------
+      - name: Download Trivy vulnerability database
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $HOME/.cache/trivy:/root/.cache/trivy \
+            aquasec/trivy:0.72.0 \
+            image --download-db-only
+
+      - name: Scan Docker Image with Trivy
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $HOME/.cache/trivy:/root/.cache/trivy \
+            aquasec/trivy:0.72.0 \
+            image \
+            --format table \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            todo-nodejs-api:v2
+
+
+  # ============================================================
+  # 3. PUSH IMAGE TO GHCR
+  # ============================================================
+  push-to-registry:
+    name: Push Image to GHCR
+    runs-on: ubuntu-latest
+    needs: security-and-build
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Login vào GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=v2
+            type=raw,value=latest
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

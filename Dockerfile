@@ -1,21 +1,20 @@
-FROM node:20-slim
+FROM node:20-alpine
 
-# Cập nhật hệ thống và vá các lỗ hổng OS
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
-ARG REFRESHED_AT=2026-07-31
+# Cập nhật package của Alpine
+RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
-# Copy hai file package
+# Copy package files trước để tận dụng Docker layer cache
 COPY package*.json ./
 
-RUN cat package-lock.json | grep tar
+# Chỉ cài production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Dùng 'npm ci --omit=dev' để chỉ cài đặt các thư viện Production
-RUN npm ci --only=production --no-cache
-
+# Copy source code
 COPY . .
 
+# Ứng dụng chạy port 3000
 EXPOSE 3000
+
 CMD ["npm", "start"]
