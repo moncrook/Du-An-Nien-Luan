@@ -6,7 +6,7 @@
   "dependencies": {
     "@hapi/boom": "^10.0.1",
     "body-parser": "^1.20.3",
-    "brace-expansion": "^5.0.8",
+    "brace-expansion": "^5.0.9",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-jwt": "^8.5.1",
@@ -28,12 +28,6 @@
     "start": "nodemon app.js",
     "test": "jest --testEnvironment=node --runInBand --detectOpenHandles --forceExit",
     "lint": "eslint ."
-  },
-  "overrides": {
-    "brace-expansion": "^5.0.8",
-    "cross-spawn": "^7.0.6",
-    "glob": "^11.1.0",
-    "minimatch": "^10.2.3"
   },
   "repository": {
     "type": "git",
