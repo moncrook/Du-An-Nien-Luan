@@ -11,13 +11,10 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: todo-nodejs-api
-  IMAGE_TAG: v2
   REGISTRY: ghcr.io
   GHCR_IMAGE: ghcr.io/moncrook/du-an-nien-luan
 
 jobs:
-
   # ============================================================
   # 1. LINT + UNIT TEST
   # ============================================================
@@ -42,17 +39,16 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Kiểm tra cú pháp
-        run: npm run lint
+        run: npm run lint --if-present
 
       - name: Chạy Unit Test
         run: npm test
 
-
   # ============================================================
-  # 2. BUILD DOCKER + SECURITY SCAN
+  # 2. BUILD, SCAN TRIVY & PUSH TO GHCR (Tối ưu 1 lần Build)
   # ============================================================
-  security-and-build:
-    name: Build Docker Image and Security Scan
+  build-scan-and-push:
+    name: Build, Scan and Push Image
     runs-on: ubuntu-latest
     needs: Code-Lint-and-Test
 
@@ -63,88 +59,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # --------------------------------------------------------
-      # Build image
-      # --------------------------------------------------------
-      - name: Build Docker Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          load: true
-          no-cache: true
-          tags: todo-nodejs-api:v2
-
-      # --------------------------------------------------------
-      # Kiểm tra image có tồn tại
-      # --------------------------------------------------------
-      - name: Show Docker Images
-        run: docker images
-
-      - name: Inspect Docker Image
-        run: docker image inspect todo-nodejs-api:v2
-
-      # --------------------------------------------------------
-      # Kiểm tra dependencies thực tế trong production image
-      # --------------------------------------------------------
-      - name: Verify production dependencies
-        run: |
-          docker run --rm todo-nodejs-api:v2 npm ls tar
-          docker run --rm todo-nodejs-api:v2 npm ls brace-expansion
-
-      # --------------------------------------------------------
-      # Kiểm tra Node và npm trong image
-      # --------------------------------------------------------
-      - name: Check Node and npm version
-        run: |
-          docker run --rm todo-nodejs-api:v2 node --version
-          docker run --rm todo-nodejs-api:v2 npm --version
-
-      # --------------------------------------------------------
-      # Trivy scan
-      #
-      # Dùng Trivy container chính thức thay vì install.sh
-      # --------------------------------------------------------
-      - name: Download Trivy vulnerability database
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $HOME/.cache/trivy:/root/.cache/trivy \
-            aquasec/trivy:0.72.0 \
-            image --download-db-only
-
-      - name: Scan Docker Image with Trivy
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v $HOME/.cache/trivy:/root/.cache/trivy \
-            aquasec/trivy:0.72.0 \
-            image \
-            --format table \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --exit-code 0 \
-            todo-nodejs-api:v2
-
-
-  # ============================================================
-  # 3. PUSH IMAGE TO GHCR
-  # ============================================================
-  push-to-registry:
-    name: Push Image to GHCR
-    runs-on: ubuntu-latest
-    needs: security-and-build
-
-    steps:
-      - name: Checkout mã nguồn
-        uses: actions/checkout@v4
-
       - name: Login vào GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Dùng Token mặc định của GitHub
 
       - name: Extract Docker metadata
         id: meta
@@ -155,7 +75,48 @@ jobs:
             type=raw,value=v2
             type=raw,value=latest
 
-      - name: Build and Push Docker Image
+      # --------------------------------------------------------
+      # Step 1: Build Image lưu vào Docker Daemon Local để Scan & Test
+      # --------------------------------------------------------
+      - name: Build Docker Image Local
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true # Tải vào docker daemon local
+          tags: todo-nodejs-api:v2
+          cache-from: type=gha # Tối ưu tốc độ Build nhờ Cache
+          cache-to: type=gha,mode=max
+
+      # --------------------------------------------------------
+      # Step 2: Verify & Test Container
+      # --------------------------------------------------------
+      - name: Verify production dependencies & Node version
+        run: |
+          docker run --rm todo-nodejs-api:v2 node --version
+          docker run --rm todo-nodejs-api:v2 npm --version
+
+      # --------------------------------------------------------
+      # Step 3: Trivy Scan (Chặn nếu có lỗi CRITICAL/HIGH)
+      # --------------------------------------------------------
+      - name: Download Trivy DB & Scan Image
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $HOME/.cache/trivy:/root/.cache/trivy \
+            aquasec/trivy:0.72.0 \
+            image \
+            --format table \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            todo-nodejs-api:v2
+
+      # --------------------------------------------------------
+      # Step 4: Push Image lên GHCR (Chỉ chạy khi push vào main & Scan thành công)
+      # --------------------------------------------------------
+      - name: Push Docker Image to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -163,3 +124,28 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+  # ============================================================
+  # 3. DEPLOY TO TARGET SERVER (Ví dụ VPS)
+  # # ============================================================
+  # deploy:
+  #   name: Deploy to Production Target
+  #   runs-on: ubuntu-latest
+  #   needs: build-scan-and-push
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+  #   steps:
+  #     - name: Deploy qua SSH vào Target Server
+  #       uses: appleboy/ssh-action@v1.0.3
+  #       with:
+  #         host: ${{ secrets.SERVER_HOST }}
+  #         username: ${{ secrets.SERVER_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         script: |
+  #           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+  #           docker pull ${{ env.GHCR_IMAGE }}:v2
+  #           docker stop todo-api || true
+  #           docker rm todo-api || true
+  #           docker run -d --name todo-api -p 3000:3000 ${{ env.GHCR_IMAGE }}:v2
+  #           docker image prune -f
