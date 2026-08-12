@@ -1,12 +1,21 @@
 
 
+// const mysql = {
+//     host: 'localhost',      // Tên host / Tên máy chủ (thường là localhost trên máy cá nhân)
+//     port: '3306',           // Cổng kết nối MySQL (mặc định là 3306)
+//     user: 'root',           // Tên tài khoản kết nối Database
+//     password: 'nhan250725', // Mật khẩu tài khoản Database
+//     database: 'my_test',    // Tên cơ sở dữ liệu kết nối
+//     connectTimeout: 5000    // Thời gian chờ kết nối tối đa (5000ms = 5 giây)
+// }
+
 const mysql = {
-    host: 'localhost',      // Tên host / Tên máy chủ (thường là localhost trên máy cá nhân)
-    port: '3306',           // Cổng kết nối MySQL (mặc định là 3306)
-    user: 'root',           // Tên tài khoản kết nối Database
-    password: 'nhan250725', // Mật khẩu tài khoản Database
-    database: 'my_test',    // Tên cơ sở dữ liệu kết nối
-    connectTimeout: 5000    // Thời gian chờ kết nối tối đa (5000ms = 5 giây)
+    host: 'mysql',
+    port: '3306',
+    user: 'root',
+    password: 'nhan250725',
+    database: 'my_test',
+    connectTimeout: 5000
 }
 
 // "test": "echo \"Error: no test specified\" && exit 1"
