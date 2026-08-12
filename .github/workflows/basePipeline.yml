@@ -128,24 +128,31 @@ jobs:
 
   # ============================================================
   # 3. DEPLOY TO TARGET SERVER (Ví dụ VPS)
-  # # ============================================================
-  # deploy:
-  #   name: Deploy to Production Target
-  #   runs-on: ubuntu-latest
-  #   needs: build-scan-and-push
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  # ============================================================
+  deploy:
+    name: Deploy to VMware Local Target
+    runs-on: self-hosted  # <--- ĐÂY LÀ ĐIỂM KEY: Chuyển Job về máy ảo VMware!
+    needs: build-scan-and-push
 
-  #   steps:
-  #     - name: Deploy qua SSH vào Target Server
-  #       uses: appleboy/ssh-action@v1.0.3
-  #       with:
-  #         host: ${{ secrets.SERVER_HOST }}
-  #         username: ${{ secrets.SERVER_USER }}
-  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
-  #         script: |
-  #           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-  #           docker pull ${{ env.GHCR_IMAGE }}:v2
-  #           docker stop todo-api || true
-  #           docker rm todo-api || true
-  #           docker run -d --name todo-api -p 3000:3000 ${{ env.GHCR_IMAGE }}:v2
-  #           docker image prune -f
+    steps:
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull Docker Image mới nhất
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.GHCR_IMAGE }}:v2
+
+      - name: Khởi chạy/Cập nhật Container
+        run: |
+          docker stop todo-api || true
+          docker rm todo-api || true
+          docker run -d \
+            --name todo-api \
+            --restart always \
+            -p 3000:3000 \
+            ${{ env.REGISTRY }}/${{ env.GHCR_IMAGE }}:v2
+
+      - name: Dọn dẹp Image cũ
+        run: |
+          docker image prune -f
