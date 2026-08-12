@@ -26,6 +26,7 @@
   },
   "scripts": {
     "start":  "node app.js",
+    "dev": "nodemon app.js",
     "test": "jest --testEnvironment=node --runInBand --detectOpenHandles --forceExit",
     "lint": "eslint ."
   },
