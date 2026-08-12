@@ -22,8 +22,8 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(8088, () => {
-  console.log('Server running on port 8088');
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
 });
 
 module.exports = app;
