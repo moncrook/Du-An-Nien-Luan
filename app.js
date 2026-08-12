@@ -9,6 +9,8 @@ const cors = require('cors'); // Nhập mô-đun cors
 const routes = require('./routes'); // Nhập file route tùy chỉnh để tạo route dạng module
 const app = express();
 
+const path = require("path");
+
 app.use(bodyParser.json()); // Cấu hình phân tích dữ liệu dạng JSON
 app.use(bodyParser.urlencoded({extended: true})); // Cấu hình phân tích dữ liệu gửi từ form (application/x-www-form-urlencoded)
 
