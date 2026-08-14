@@ -126,33 +126,46 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
 
-  # ============================================================
-  # 3. DEPLOY TO TARGET SERVER (Ví dụ VPS)
-  # ============================================================
+    # ============================================================
+    # 3. DEPLOY TO VMWARE LOCAL TARGET
+    # ============================================================
   deploy:
     name: Deploy to VMware Local Target
-    runs-on: self-hosted  # <--- ĐÂY LÀ ĐIỂM KEY: Chuyển Job về máy ảo VMware!
+    runs-on: self-hosted
     needs: build-scan-and-push
 
     steps:
-      - name: Log in to GitHub Container Registry
+      - name: Login vào GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u "${{ github.actor }}" \
+            --password-stdin
 
-      - name: Pull Docker Image mới nhất
+      - name: Di chuyển đến thư mục triển khai
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.GHCR_IMAGE }}:v2
+          cd /home/deploy/todo-app
+          pwd
+          ls -la
 
-      - name: Khởi chạy/Cập nhật Container
+      - name: Pull Docker Image mới
         run: |
-          docker stop todo-api || true
-          docker rm todo-api || true
-          docker run -d \
-            --name todo-api \
-            --restart always \
-            -p 3000:3000 \
-            ${{ env.REGISTRY }}/${{ env.GHCR_IMAGE }}:v2
+          cd /home/deploy/todo-app
+          docker compose pull todo-api
 
-      - name: Dọn dẹp Image cũ
+      - name: Deploy bằng Docker Compose
+        run: |
+          cd /home/deploy/todo-app
+          docker compose up -d todo-api
+
+      - name: Kiểm tra trạng thái hệ thống
+        run: |
+          cd /home/deploy/todo-app
+          docker compose ps
+
+      - name: Kiểm tra container todo-api
+        run: |
+          docker ps --filter "name=todo-api" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+      - name: Dọn dẹp Docker image cũ
         run: |
           docker image prune -f
